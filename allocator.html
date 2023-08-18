@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>allocator.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="allocatorh">allocator.h</h1>
+<blockquote>
+<p>文件路径：gcc-4.9.0\libstdc++-v3\include\bits\allocator.h</p>
+</blockquote>
+<h2 id="%E6%8E%A5%E5%8F%A3">接口</h2>
+<p><img src="allocator-接口-1.PNG" alt="图片"></p>
+<p><img src="allocator-接口-2.PNG" alt="图片"></p>
+<p><img src="allocator-接口-3.PNG" alt="图片"></p>
+<p><strong>Notes</strong></p>
+<p>成员模板类提供了一种获取分配不同类型元素的allocator的方法。例如std::list&lt;T, A&gt;为内置节点类型分配内存，使用分配器A::rebind&lt;Node&lt;T&gt;&gt;::other（直到C++11）。</p>
+<h2 id="%E6%BA%90%E4%BB%A3%E7%A0%81">源代码</h2>
+<pre class="hljs"><code><div><span class="hljs-comment">/** @file bits/allocator.h
+ *  This is an internal header file, included by other library headers.
+ *  Do not attempt to use it directly. @headername{memory}
+ */</span>
+
+<span class="hljs-meta">#<span class="hljs-meta-keyword">ifndef</span> _ALLOCATOR_H</span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> _ALLOCATOR_H 1</span>
+
+<span class="hljs-meta">#<span class="hljs-meta-keyword">include</span> <span class="hljs-meta-string">&lt;bits/c++allocator.h&gt; // 定义了std::allocator的基类</span></span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">include</span> <span class="hljs-meta-string">&lt;bits/memoryfwd.h&gt;</span></span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">if</span> __cplusplus &gt;= 201103L</span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">include</span> <span class="hljs-meta-string">&lt;type_traits&gt;</span></span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">endif</span></span>
+
+<span class="hljs-keyword">namespace</span> <span class="hljs-built_in">std</span> _GLIBCXX_VISIBILITY(<span class="hljs-keyword">default</span>)
+{
+    _GLIBCXX_BEGIN_NAMESPACE_VERSION
+
+        <span class="hljs-comment">/**
+         *  @addtogroup allocators
+         *  @{
+         */</span>
+
+         <span class="hljs-comment">/// allocator&lt;void&gt;特化版本</span>
+        <span class="hljs-keyword">template</span>&lt;&gt;
+    <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">allocator</span>&lt;void&gt;
+    {</span>
+    <span class="hljs-keyword">public</span>:
+        <span class="hljs-keyword">typedef</span> <span class="hljs-keyword">size_t</span>      size_type;
+        <span class="hljs-keyword">typedef</span> <span class="hljs-keyword">ptrdiff_t</span>   difference_type;
+        <span class="hljs-keyword">typedef</span> <span class="hljs-keyword">void</span>* pointer;
+        <span class="hljs-keyword">typedef</span> <span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span>* const_pointer;
+        <span class="hljs-keyword">typedef</span> <span class="hljs-keyword">void</span>        value_type;
+
+        <span class="hljs-keyword">template</span>&lt;<span class="hljs-keyword">typename</span> _Tp1&gt;
+        <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">rebind</span>
+        {</span>
+            <span class="hljs-keyword">typedef</span> allocator&lt;_Tp1&gt; other;
+        };
+
+<span class="hljs-meta">#<span class="hljs-meta-keyword">if</span> __cplusplus &gt;= 201103L</span>
+        <span class="hljs-comment">// _GLIBCXX_RESOLVE_LIB_DEFECTS</span>
+        <span class="hljs-comment">// 2103. std::allocator propagate_on_container_move_assignment</span>
+        <span class="hljs-keyword">typedef</span> true_type propagate_on_container_move_assignment;
+<span class="hljs-meta">#<span class="hljs-meta-keyword">endif</span></span>
+    };
+
+    <span class="hljs-comment">/**
+     * @brief  The @a standard allocator, as per [20.4].
+     *
+     *  See http://gcc.gnu.org/onlinedocs/libstdc++/manual/bk01pt04ch11.html
+     *  for further details.
+     *
+     *  @tparam  _Tp  Type of allocated object.
+     */</span>
+    <span class="hljs-keyword">template</span>&lt;<span class="hljs-keyword">typename</span> _Tp&gt;
+    <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">allocator</span> :</span> <span class="hljs-keyword">public</span> __allocator_base&lt;_Tp&gt;
+    {
+    <span class="hljs-keyword">public</span>:
+        <span class="hljs-keyword">typedef</span> <span class="hljs-keyword">size_t</span>     size_type;
+        <span class="hljs-keyword">typedef</span> <span class="hljs-keyword">ptrdiff_t</span>  difference_type;
+        <span class="hljs-keyword">typedef</span> _Tp* pointer;
+        <span class="hljs-keyword">typedef</span> <span class="hljs-keyword">const</span> _Tp* const_pointer;
+        <span class="hljs-keyword">typedef</span> _Tp&amp; reference;
+        <span class="hljs-keyword">typedef</span> <span class="hljs-keyword">const</span> _Tp&amp; const_reference;
+        <span class="hljs-keyword">typedef</span> _Tp        value_type;
+
+        <span class="hljs-keyword">template</span>&lt;<span class="hljs-keyword">typename</span> _Tp1&gt;
+        <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">rebind</span>
+        {</span>
+            <span class="hljs-keyword">typedef</span> allocator&lt;_Tp1&gt; other;
+        };
+
+<span class="hljs-meta">#<span class="hljs-meta-keyword">if</span> __cplusplus &gt;= 201103L</span>
+        <span class="hljs-comment">// _GLIBCXX_RESOLVE_LIB_DEFECTS</span>
+        <span class="hljs-comment">// 2103. std::allocator propagate_on_container_move_assignment</span>
+        <span class="hljs-keyword">typedef</span> true_type propagate_on_container_move_assignment;
+<span class="hljs-meta">#<span class="hljs-meta-keyword">endif</span></span>
+
+        allocator() <span class="hljs-keyword">throw</span>() { }  <span class="hljs-comment">//默认构造，throw()指示函数不会抛出异常</span>
+
+        allocator(<span class="hljs-keyword">const</span> allocator&amp; __a) <span class="hljs-keyword">throw</span>()  <span class="hljs-comment">//拷贝构造</span>
+            : __allocator_base&lt;_Tp&gt;(__a) { }
+
+        <span class="hljs-keyword">template</span>&lt;<span class="hljs-keyword">typename</span> _Tp1&gt;
+        allocator(<span class="hljs-keyword">const</span> allocator&lt;_Tp1&gt;&amp;) <span class="hljs-keyword">throw</span>() { }
+
+        ~allocator() <span class="hljs-keyword">throw</span>() { }  <span class="hljs-comment">//析构</span>
+
+        <span class="hljs-comment">// Inherit everything else.</span>
+    };
+
+    <span class="hljs-keyword">template</span>&lt;<span class="hljs-keyword">typename</span> _T1, <span class="hljs-keyword">typename</span> _T2&gt;
+    <span class="hljs-keyword">inline</span> <span class="hljs-keyword">bool</span>
+        <span class="hljs-keyword">operator</span>==(<span class="hljs-keyword">const</span> allocator&lt;_T1&gt;&amp;, <span class="hljs-keyword">const</span> allocator&lt;_T2&gt;&amp;)
+    {
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+    }
+
+    <span class="hljs-keyword">template</span>&lt;<span class="hljs-keyword">typename</span> _Tp&gt;
+    <span class="hljs-keyword">inline</span> <span class="hljs-keyword">bool</span>
+        <span class="hljs-keyword">operator</span>==(<span class="hljs-keyword">const</span> allocator&lt;_Tp&gt;&amp;, <span class="hljs-keyword">const</span> allocator&lt;_Tp&gt;&amp;)
+    {
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+    }
+
+    <span class="hljs-keyword">template</span>&lt;<span class="hljs-keyword">typename</span> _T1, <span class="hljs-keyword">typename</span> _T2&gt;
+    <span class="hljs-keyword">inline</span> <span class="hljs-keyword">bool</span>
+        <span class="hljs-keyword">operator</span>!=(<span class="hljs-keyword">const</span> allocator&lt;_T1&gt;&amp;, <span class="hljs-keyword">const</span> allocator&lt;_T2&gt;&amp;)
+    {
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+    }
+
+    <span class="hljs-keyword">template</span>&lt;<span class="hljs-keyword">typename</span> _Tp&gt;
+    <span class="hljs-keyword">inline</span> <span class="hljs-keyword">bool</span>
+        <span class="hljs-keyword">operator</span>!=(<span class="hljs-keyword">const</span> allocator&lt;_Tp&gt;&amp;, <span class="hljs-keyword">const</span> allocator&lt;_Tp&gt;&amp;)
+    {
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+    }
+
+    <span class="hljs-comment">/// @} group allocator</span>
+
+    <span class="hljs-comment">// Inhibit implicit instantiations for required instantiations,</span>
+    <span class="hljs-comment">// which are defined via explicit instantiations elsewhere.</span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">if</span> _GLIBCXX_EXTERN_TEMPLATE</span>
+    <span class="hljs-keyword">extern</span> <span class="hljs-keyword">template</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">allocator</span>&lt;char&gt;;</span>
+    <span class="hljs-keyword">extern</span> <span class="hljs-keyword">template</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">allocator</span>&lt;wchar_t&gt;;</span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">endif</span></span>
+
+    _GLIBCXX_END_NAMESPACE_VERSION
+} <span class="hljs-comment">// namespace std</span>
+
+<span class="hljs-meta">#<span class="hljs-meta-keyword">endif</span></span>
+</div></code></pre>
+<h2 id="%E8%A7%A3%E6%9E%90">解析</h2>
+<p><strong>_GLIBCXX_BEGIN_NAMESPACE_VERSION</strong></p>
+<p>代码中的_GLIBCXX_BEGIN_NAMESPACE_VERSION和_GLIBCXX_END_NAMESPACE_VERSION是一对宏。定义在gcc-4.9.0\libstdc++-v3\include\bits\c++config文件中：</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">namespace</span> __gnu_cxx
+{
+  <span class="hljs-keyword">inline</span> <span class="hljs-keyword">namespace</span> __7 { }
+  <span class="hljs-keyword">namespace</span> __detail { <span class="hljs-keyword">inline</span> <span class="hljs-keyword">namespace</span> __7 { } }
+}
+<span class="hljs-meta"># <span class="hljs-meta-keyword">define</span> _GLIBCXX_BEGIN_NAMESPACE_VERSION namespace __7 {</span>
+<span class="hljs-meta"># <span class="hljs-meta-keyword">define</span> _GLIBCXX_END_NAMESPACE_VERSION }</span>
+</div></code></pre>
+<p>能够看到这一对宏代表了一个命名空间：</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">namespace</span> __7 { }
+</div></code></pre>
+<p>重点在于namespace __gnu_cxx中定义了inline namespce __7。inline namespace的含义是这个命名空间是内联的，内联命名空间中的名称可以直接使用。比如上面源代码中的allocator</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">namespace</span> <span class="hljs-built_in">std</span> _GLIBCXX_VISIBILITY(<span class="hljs-keyword">default</span>)
+{
+    _GLIBCXX_BEGIN_NAMESPACE_VERSION
+
+    <span class="hljs-keyword">template</span>&lt;&gt;
+    <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">allocator</span>&lt;void&gt;
+    {</span>
+        <span class="hljs-comment">//...</span>
+    };
+
+    <span class="hljs-keyword">template</span>&lt;<span class="hljs-keyword">typename</span> _Tp&gt;
+    <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">allocator</span> :</span> <span class="hljs-keyword">public</span> __allocator_base&lt;_Tp&gt;
+    {
+        <span class="hljs-comment">//...</span>
+    };
+
+    _GLIBCXX_END_NAMESPACE_VERSION
+} <span class="hljs-comment">// namespace std</span>
+</div></code></pre>
+<p>使用标准库提供的内存分配器时可以直接使用std::allocator而不需要指定__7。</p>
+<p>在标准库其他源代码中还能经常看到这两个宏。</p>
+<p><strong>__allocator_base</strong></p>
+<p>能够看到std::allocator只是定义了部分标准接口，且继承自__allocator_base。相信更多细节被实现在__allocator_base基类中。&lt;bits/c++allocator.h&gt;头文件后面注释告诉我们这里指定了std::allocator的基类。</p>
+<pre class="hljs"><code><div><span class="hljs-comment">/** @file bits/c++allocator.h
+*  This is an internal header file, included by other library headers.
+*  Do not attempt to use it directly. @headername{memory}
+*/</span>
+
+<span class="hljs-meta">#<span class="hljs-meta-keyword">ifndef</span> _GLIBCXX_CXX_ALLOCATOR_H</span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> _GLIBCXX_CXX_ALLOCATOR_H 1</span>
+
+<span class="hljs-meta">#<span class="hljs-meta-keyword">include</span> <span class="hljs-meta-string">&lt;ext/new_allocator.h&gt;</span></span>
+ 
+<span class="hljs-meta">#<span class="hljs-meta-keyword">if</span> __cplusplus &gt;= 201103L</span>
+<span class="hljs-keyword">namespace</span> <span class="hljs-built_in">std</span>
+{
+  <span class="hljs-comment">/**
+   *  @brief  An alias to the base class for std::allocator.
+   *  @ingroup allocators
+   *
+   *  Used to set the std::allocator base class to
+   *  __gnu_cxx::new_allocator.
+   *
+   *  @tparam  _Tp  Type of allocated object.
+    */</span>
+   <span class="hljs-keyword">template</span>&lt;<span class="hljs-keyword">typename</span> _Tp&gt;
+    <span class="hljs-keyword">using</span> __allocator_base = __gnu_cxx::new_allocator&lt;_Tp&gt;;
+}
+<span class="hljs-meta">#<span class="hljs-meta-keyword">else</span></span>
+<span class="hljs-comment">// Define new_allocator as the base class to std::allocator.</span>
+<span class="hljs-meta"># <span class="hljs-meta-keyword">define</span> __allocator_base  __gnu_cxx::new_allocator</span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">endif</span></span>
+
+<span class="hljs-meta">#<span class="hljs-meta-keyword">endif</span></span>
+</div></code></pre>
+<p>这里指明了std::allocator底层默认allocator是new_allocator。实际上GNU中定义了许多不同类型的allocator，在ext目录下能够看到其他不同类型的allocator。</p>
+
+</body>
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script type="text/x-mathjax-config"> MathJax.Hub.Config({ tex2jax: {inlineMath: [['$', '$']]}, messageStyle: "none" });</script>
+</html>
